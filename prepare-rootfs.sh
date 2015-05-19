@@ -1,6 +1,11 @@
 #!/bin/sh
 # Prepare mxcloud testing environment from firmware V1.4
 
+if [ "$1" == "" ];
+	echo "Usage: $0 [ip-segment#4]"
+	exit 1
+fi
+
 cd /tmp
 
 # setup the network
@@ -17,12 +22,8 @@ ntpdate 192.168.50.33
 
 
 CG_PACKAGES=" \
-git \
-libc-ares2 \
-libjansson4 \
 python-dev \
 python-pip \
-python-virtualenv \
 syslog-ng \
 "
 
@@ -33,23 +34,19 @@ apt-get update; apt-get -y upgrade
 # install packages
 apt-get -y install ${CG_PACKAGES}
 
-# install mosquitto (version = 1.3.5)
-wget -O libmosquitto1_1.3.5-0mosquitto1_armhf.deb http://192.168.31.31/dokuwiki/lib/exe/fetch.php?media=software:linux:product:mxcloud:uc8100:libmosquitto1_1.3.5-0mosquitto1_armhf.deb
-wget -O mosquitto-clients_1.3.5-0mosquitto1_armhf.deb http://192.168.31.31/dokuwiki/lib/exe/fetch.php?media=software:linux:product:mxcloud:uc8100:mosquitto-clients_1.3.5-0mosquitto1_armhf.deb
-wget -O mosquitto_1.3.5-0mosquitto1_armhf.deb http://192.168.31.31/dokuwiki/lib/exe/fetch.php?media=software:linux:product:mxcloud:uc8100:mosquitto_1.3.5-0mosquitto1_armhf.deb
-
-dpkg -i libmosquitto1_1.3.5-0mosquitto1_armhf.deb \
-	mosquitto-clients_1.3.5-0mosquitto1_armhf.deb \
-	mosquitto_1.3.5-0mosquitto1_armhf.deb
+# install mosquitto (latest version)
+wget http://repo.mosquitto.org/debian/mosquitto-repo.gpg.key
+apt-key add mosquitto-repo.gpg.key
+wget http://repo.mosquitto.org/debian/mosquitto-wheezy.list
+mv mosquitto-wheezy.list /etc/apt/sources.list.d/
+apt-get update
+apt-get install -y mosquitto libmosquitto1 mosquitto-clients
 
 # install sanji controller
 wget -O sanji-controller_1.0.0_armhf.deb http://192.168.31.31/dokuwiki/lib/exe/fetch.php?media=software:linux:product:mxcloud:uc8100:sanji-controller_1.0.0_armhf.deb
 dpkg -i sanji-controller_1.0.0_armhf.deb
 
-# prepare virtualenv
-cd /home/moxa
-virtualenv --system-site-packages mxcg_sanji-env
-. /home/moxa/mxcg_sanji-env/bin/activate
+cd /tmp
 
 # install project packages
 wget http://192.168.31.74:8080/job/mxc/lastSuccessfulBuild/artifact/build-deb/mxc_0.2.7-1_all.deb
@@ -59,9 +56,17 @@ wget http://192.168.31.74:8080/job/mxcg-sanji/lastSuccessfulBuild/artifact/build
 dpkg -i mxc_0.2.7-1_all.deb mxcg_0.2.0-1_all.deb \
 	mxc-sanji_0.1.0-1_all.deb mxcg-sanji_0.3.0-1_all.deb
 
-# install python packages in virtualenv
+# install python packages
+cd /home/moxa
 pip install git+https://github.com/Sanji-IO/sanji.git#egg=sanji
 
 echo 192.168.31.81 mxc-cs >> /etc/hosts
 sed -i "s|#mqtt-tls-psk|mqtt-tls-psk|g" /etc/mxc/fwd/configuration
 
+./install-generic-bundles.sh
+#./clean-system
+
+sed -i "s|220.135.161.42|debian.moxa.com|g" /etc/apt/sources.list
+mv /etc/resolv.conf.bak /etc/resolv.conf
+mv /etc/network/interfaces.bak /etc/network/interfaces
+mv /etc/hosts.bak /etc/hosts

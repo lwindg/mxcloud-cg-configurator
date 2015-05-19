@@ -11,5 +11,5 @@ find /home/moxa/mxcg_sanji-env/bin -name "mxcg_sanji_*" | \
 cd /usr/lib/sanji-1.0/bootstrap
 REMOTE_PORT=8883 REMOTE_ID=server BG_PSK=$BG_PSK \
 	REMOTE_HOST=192.168.31.81 LOCAL_ID=$CG_ID BG_ID=$CG_ID \
-	BUNDLE_ENV=release \
-	BUNDLES_HOME=/usr/lib/sanji-1.0 python bootstrap.py
+	BUNDLE_ENV=production \
+	BUNDLES_HOME=/usr/lib/sanji-1.0 python bootstrap.py &
